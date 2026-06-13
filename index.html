@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
+    <button id="themeToggle" class="theme-toggle" title="Toggle theme">🌙</button>
+    
     <div class="container">
         <h1>💡 regex-tester</h1>
         <p class="subtitle">Test and debug regular expressions with real-time explanations</p>
@@ -121,10 +123,146 @@ Example: Hello World 123! Contact us at test@example.com or visit https://exampl
             </div>
         </div>
         
+        <div class="export-section" id="exportSection" style="display: none;">
+            <h3>📤 Export Results</h3>
+            <div class="export-buttons">
+                <button onclick="exportResults('txt')" class="export-btn">📄 Text (.txt)</button>
+                <button onclick="exportResults('json')" class="export-btn">📋 JSON (.json)</button>
+                <button onclick="exportResults('html')" class="export-btn">🌐 HTML (.html)</button>
+                <button onclick="copyResults()" class="export-btn">📋 Copy to Clipboard</button>
+            </div>
+        </div>
+        
         <footer>
             Made with 💡 by <a href="https://github.com/Agent-Lumi">Lumi</a>
+            <p class="shortcuts-hint">
+                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Test · 
+                <kbd>Ctrl</kbd>+<kbd>Del</kbd> Clear · 
+                <kbd>Ctrl</kbd>+<kbd>S</kbd> Export · 
+                <kbd>Esc</kbd> Close
+            </p>
         </footer>
     </div>
     <script src="app.js"></script>
+    
+    <script>
+        // Theme toggle functionality
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('regex-tester-theme');
+            
+            // Apply saved theme
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                themeToggle.textContent = '☀️';
+            }
+            
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('light-mode');
+                const isLight = document.body.classList.contains('light-mode');
+                themeToggle.textContent = isLight ? '☀️' : '🌙';
+                localStorage.setItem('regex-tester-theme', isLight ? 'light' : 'dark');
+            });
+            
+            // Show export section after first test
+            const observer = new MutationObserver(() => {
+                const resultsSection = document.getElementById('resultsSection');
+                const exportSection = document.getElementById('exportSection');
+                if (resultsSection && resultsSection.style.display === 'block' && exportSection) {
+                    exportSection.style.display = 'block';
+                }
+            });
+            observer.observe(document.getElementById('resultsSection'), { attributes: true, attributeFilter: ['style'] });
+            
+            // Export functions
+            window.exportResults = function(format) {
+                const pattern = document.getElementById('pattern')?.value || '';
+                const flags = document.getElementById('flags')?.value || '';
+                const testString = document.getElementById('testString')?.value || '';
+                const resultsSection = document.getElementById('resultsSection');
+                const explanationSection = document.getElementById('explanationSection');
+                
+                const timestamp = new Date().toISOString();
+                let content, filename, mimeType;
+                
+                switch(format) {
+                    case 'json':
+                        const data = {
+                            timestamp,
+                            pattern: '/' + pattern + '/' + flags,
+                            testString,
+                            results: document.getElementById('matches')?.innerText || '',
+                            stats: document.getElementById('matchStats')?.innerText || ''
+                        };
+                        content = JSON.stringify(data, null, 2);
+                        filename = `regex-test-${Date.now()}.json`;
+                        mimeType = 'application/json';
+                        break;
+                        
+                    case 'html':
+                        content = `<!DOCTYPE html>
+<html>
+<head><title>Regex Test Results</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:0 auto;padding:20px}</style></head>
+<body>
+<h1>Regex Test Results</h1>
+<p><strong>Pattern:</strong> /${pattern}/${flags}</p>
+<p><strong>Test String:</strong></p>
+<pre>${testString}</pre>
+<hr>
+${document.getElementById('matches')?.innerHTML || ''}
+<hr>
+${document.getElementById('explanation')?.innerHTML || ''}
+</body></html>`;
+                        filename = `regex-test-${Date.now()}.html`;
+                        mimeType = 'text/html';
+                        break;
+                        
+                    case 'txt':
+                    default:
+                        content = `Regex Test Results
+==================
+Timestamp: ${timestamp}
+Pattern: /${pattern}/${flags}
+
+Test String:
+${testString}
+
+Results:
+${resultsSection ? resultsSection.innerText : 'No results'}
+
+${explanationSection ? explanationSection.innerText : ''}`;
+                        filename = `regex-test-${Date.now()}.txt`;
+                        mimeType = 'text/plain';
+                }
+                
+                // Download
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Show toast
+                RegexTester?.showToast(`Exported as ${format.toUpperCase()}`, 'success');
+            };
+            
+            window.copyResults = function() {
+                const results = document.getElementById('resultsSection')?.innerText || '';
+                const pattern = document.getElementById('pattern')?.value || '';
+                const flags = document.getElementById('flags')?.value || '';
+                const text = `Pattern: /${pattern}/${flags}\n\n${results}`;
+                
+                navigator.clipboard.writeText(text).then(() => {
+                    RegexTester?.showToast('Results copied to clipboard!', 'success');
+                }).catch(() => {
+                    RegexTester?.showToast('Failed to copy', 'error');
+                });
+            };
+        })();
+    </script>
 </body>
 </html>

@@ -89,6 +89,12 @@ const RegexTester = {
                         e.preventDefault();
                         this.clearAll();
                         break;
+                    case 's':
+                        e.preventDefault();
+                        if (window.exportResults) {
+                            window.exportResults('json');
+                        }
+                        break;
                 }
             }
         });
