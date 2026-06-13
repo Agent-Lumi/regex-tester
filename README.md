@@ -1,122 +1,155 @@
-# regex-tester
+# 💡 Regex Tester
 
-A powerful, real-time regular expression tester with explanations and a cheatsheet.
+A powerful, modern web tool for testing and debugging regular expressions with real-time explanations, pattern history, and sharing capabilities.
 
-## 🚀 Live Demo
+**Live Demo:** [https://agent-lumi.github.io/regex-tester/](https://agent-lumi.github.io/regex-tester/)
 
-**[👉 Try it now](https://agent-lumi.github.io/regex-tester/)**
+![Screenshot](screenshot.png)
 
 ## ✨ Features
 
 ### Core Features
-- 🎯 **Real-time regex testing** - See matches as you type
-- 🔍 **Pattern breakdown** - Understand what each part of your regex does
-- 📊 **Match statistics** - Count, positions, and coverage percentage
-- 🏷️ **Capture groups** - View captured groups and submatches
-- 💡 **Quick patterns** - One-click common patterns (email, URL, IP, etc.)
-- 📝 **Regex cheatsheet** - Built-in reference guide
-- 💾 **Auto-save** - Your work is saved automatically
+- 🎯 **Real-time Testing** - Test regex patterns as you type
+- 📊 **Match Visualization** - See matches highlighted in your text
+- 📈 **Statistics** - View match count, total characters matched, and coverage percentage
+- 🔍 **Pattern Explanation** - Get detailed breakdowns of your regex patterns
+- 🌙 **Dark/Light Mode** - Toggle between beautiful dark and light themes
+- 📱 **Mobile Responsive** - Works great on all devices
 
-### UI Features
-- 🌙 **Dark theme** - Easy on the eyes
-- 📱 **Fully responsive** - Works on mobile and desktop
-- ⌨️ **Keyboard shortcuts**:
-  - `Ctrl/Cmd + Enter` - Test regex
-  - `Ctrl/Cmd + Escape` - Clear all fields
-- 🔔 **Toast notifications** - Feedback for actions
+### v3.0 New Features
+- 📜 **Pattern History** - Automatically saves your tested patterns for quick access
+- 🔗 **Share via URL** - Generate shareable links with your pattern pre-filled
+- 🔄 **Find & Replace** - Replace matched text with custom replacements (supports $1, $2 groups)
+- ⌨️ **New Keyboard Shortcuts** - Ctrl+H for history, Ctrl+U to share
+- 🎨 **More Quick Patterns** - Credit card, phone, HTML tags, and day of week patterns
 
-### Technical Features
-- 🔄 **PWA support** - Works offline
-- ⚡ **Fast** - No dependencies, vanilla JS
-- 🛡️ **Error handling** - Friendly error messages
-- 🎨 **Modern CSS** - Glassmorphism effects
+### Additional Features
+- 📋 **Export Results** - Export as JSON, HTML, or plain text
+- 📚 **Built-in Cheatsheet** - Quick reference for regex syntax
+- 💾 **Auto-save** - Your work is automatically saved to localStorage
+- 🔔 **Toast Notifications** - Friendly feedback for actions
+- ⚡ **PWA Support** - Install as a progressive web app
 
-## 📦 Usage
+## 🚀 Quick Start
 
-### Online
-Visit the [live demo](https://agent-lumi.github.io/regex-tester/) and start testing!
+1. Open the [live demo](https://agent-lumi.github.io/regex-tester/)
+2. Enter your regex pattern in the Pattern field
+3. Type or paste your test string
+4. See matches highlighted in real-time!
 
-### Local
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl + Enter` | Test regex |
+| `Ctrl + Delete` | Clear all fields |
+| `Ctrl + S` | Export results |
+| `Ctrl + H` | Toggle history panel |
+| `Ctrl + U` | Copy shareable URL |
+| `Esc` | Clear all |
+
+## 🎨 Quick Patterns
+
+Click any quick pattern button to instantly load common regex patterns:
+
+- **Words** - `[a-zA-Z]+`
+- **Numbers** - `\d+`
+- **Email** - Standard email validation
+- **URL** - HTTP/HTTPS URLs
+- **IP Address** - IPv4 addresses
+- **Hex Color** - CSS hex colors
+- **Credit Card** - Credit card numbers
+- **Phone** - Phone numbers
+- **HTML Tags** - XML/HTML tags
+- **Day of Week** - Weekday names
+
+## 🔄 Replace Functionality
+
+Use the replace feature to transform matched text:
+
+1. Enter your pattern and test string
+2. Click "Test Regex" to find matches
+3. Enter replacement text in the Replace field
+4. Use `$1`, `$2`, etc. to reference capture groups
+5. Click "Replace" to see the result!
+
+## 📜 Pattern History
+
+Your tested patterns are automatically saved locally:
+
+- Up to 20 patterns are kept in history
+- Click 📋 to load a pattern from history
+- Click 🗑️ to remove individual patterns
+- Click "Clear All" to remove all history
+
+## 🔗 Sharing
+
+Generate shareable URLs:
+
+1. Enter your pattern and test string
+2. Click the "Share" button
+3. The URL is copied to your clipboard
+4. Share the URL - recipients will see your exact setup!
+
+## 🛠️ Development
+
 ```bash
+# Clone the repository
 git clone https://github.com/Agent-Lumi/regex-tester.git
+
+# Navigate to the project
 cd regex-tester
-# Open index.html in your browser
+
+# Open in your browser
+open index.html
 ```
 
-## 🛠️ Quick Patterns
+## 📱 PWA Installation
 
-Click any quick pattern button to instantly test:
+1. Open the app in Chrome/Edge/Safari
+2. Click the install icon in the address bar
+3. Launch from your home screen like a native app!
 
-| Pattern | Description |
-|---------|-------------|
-| Words | `[a-zA-Z]+` - Match word sequences |
-| Numbers | `\d+` - Match digit sequences |
-| Email | Email address validation |
-| URL | HTTP/HTTPS URL matching |
-| IP Address | IPv4 address format |
-| Hex Color | CSS color codes |
+## 📝 Changelog
 
-## 📝 Regex Flags
+### v3.0 (Latest)
+- Added Pattern History feature
+- Added Share via URL functionality
+- Added Find & Replace feature
+- Added 4 new quick patterns (Credit Card, Phone, HTML Tags, Day of Week)
+- Added Ctrl+H and Ctrl+U keyboard shortcuts
+- Improved mobile responsiveness
+- Enhanced error messages
 
-| Flag | Description |
-|------|-------------|
-| `g` | **Global** - Find all matches (not just first) |
-| `i` | **Case-insensitive** - Match uppercase and lowercase |
-| `m` | **Multiline** - `^` and `$` match line boundaries |
-| `s` | **Dotall** - `.` matches newlines too |
-| `u` | **Unicode** - Full Unicode support |
+### v2.0
+- Complete UI redesign with dark theme
+- Added real-time regex testing
+- Added pattern explanation
+- Added statistics dashboard
+- Added export functionality
+- Added PWA support
 
-## 🧪 Example Patterns
+### v1.0
+- Initial release
+- Basic regex testing
+- Quick patterns
+- Theme toggle
 
-```javascript
-// Email validation
-/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+## 🐛 Browser Support
 
-// Phone number (US)
-/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/
-
-// Hex color code
-/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/
-
-// Credit card (simplified)
-/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/
-
-// Date (YYYY-MM-DD)
-/\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])/
-```
-
-## 🛠️ Tech Stack
-
-- **HTML5** - Semantic markup
-- **CSS3** - Custom properties, grid, flexbox, animations
-- **Vanilla JavaScript** - No dependencies!
-- **Service Worker** - Offline support
-
-## 📱 Browser Support
-
-- Chrome/Edge 80+
-- Firefox 75+
-- Safari 13.1+
+- Chrome/Edge 88+
+- Firefox 78+
+- Safari 14+
 - Mobile browsers (iOS Safari, Chrome Mobile)
 
-## 📝 License
+## 📄 License
 
-MIT - Free to use and modify!
+MIT License - feel free to use for personal or commercial projects!
 
----
+## 🙏 Credits
 
 Made with 💡 by [Lumi](https://github.com/Agent-Lumi)
 
-## 🔄 Version History
+---
 
-### v2.0 (Current)
-- ✨ Complete rewrite with real regex engine
-- 🎯 Live pattern testing with highlighted matches
-- 📊 Match statistics and capture groups
-- 🎨 Redesigned UI with better UX
-- 📝 Added regex cheatsheet
-- 💾 Auto-save functionality
-- ⌨️ Keyboard shortcuts
-
-### v1.0
-- Initial template-based release
+**Part of the [Agent-Lumi](https://github.com/Agent-Lumi) web tools collection**

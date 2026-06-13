@@ -1,5 +1,5 @@
 // Regex Tester - Real regex testing functionality
-// v2.0 - Full rewrite with proper regex engine
+// v3.0 - Added pattern history, URL sharing, and replace functionality
 
 const RegexTester = {
     // DOM Elements
@@ -8,11 +8,14 @@ const RegexTester = {
     // State
     currentMatches: [],
     matchIndex: 0,
+    patternHistory: [],
     
     init() {
         this.cacheElements();
         this.bindEvents();
         this.loadSavedData();
+        this.loadPatternHistory();
+        this.loadFromURL();
         this.registerServiceWorker();
     },
     
@@ -24,6 +27,7 @@ const RegexTester = {
             testBtn: document.getElementById('testBtn'),
             clearBtn: document.getElementById('clearBtn'),
             copyPatternBtn: document.getElementById('copyPatternBtn'),
+            shareBtn: document.getElementById('shareBtn'),
             resultsSection: document.getElementById('resultsSection'),
             matches: document.getElementById('matches'),
             matchStats: document.getElementById('matchStats'),
@@ -31,7 +35,14 @@ const RegexTester = {
             explanation: document.getElementById('explanation'),
             errorDisplay: document.getElementById('errorDisplay'),
             flagTags: document.querySelectorAll('.flag-tag'),
-            patternButtons: document.querySelectorAll('.pattern-btn')
+            patternButtons: document.querySelectorAll('.pattern-btn'),
+            historySection: document.getElementById('historySection'),
+            historyList: document.getElementById('historyList'),
+            replaceSection: document.getElementById('replaceSection'),
+            replaceInput: document.getElementById('replaceInput'),
+            replaceBtn: document.getElementById('replaceBtn'),
+            replaceResult: document.getElementById('replaceResult'),
+            copyReplaceBtn: document.getElementById('copyReplaceBtn')
         };
     },
     
@@ -45,6 +56,15 @@ const RegexTester = {
         // Copy pattern button
         this.elements.copyPatternBtn?.addEventListener('click', () => this.copyPattern());
         
+        // Share button
+        this.elements.shareBtn?.addEventListener('click', () => this.sharePattern());
+        
+        // Replace button
+        this.elements.replaceBtn?.addEventListener('click', () => this.replaceText());
+        
+        // Copy replace result
+        this.elements.copyReplaceBtn?.addEventListener('click', () => this.copyReplaceResult());
+        
         // Flag tags
         this.elements.flagTags.forEach(tag => {
             tag.addEventListener('click', () => this.toggleFlag(tag));
@@ -56,6 +76,7 @@ const RegexTester = {
                 this.elements.pattern.value = btn.dataset.pattern;
                 this.elements.flags.value = btn.dataset.flags;
                 this.updateFlagTags();
+                this.addToHistory(btn.dataset.pattern, btn.dataset.flags, 'Quick Pattern');
                 this.testRegex();
             });
         });
@@ -95,6 +116,14 @@ const RegexTester = {
                             window.exportResults('json');
                         }
                         break;
+                    case 'h':
+                        e.preventDefault();
+                        this.toggleHistory();
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        this.sharePattern();
+                        break;
                 }
             }
         });
@@ -128,6 +157,12 @@ const RegexTester = {
             this.currentMatches = matches;
             this.displayResults(matches, testString);
             this.generateExplanation(pattern, flags, matches);
+            
+            // Add to history after successful test
+            if (matches.length > 0) {
+                this.addToHistory(pattern, flags, testString.substring(0, 50));
+            }
+            
             this.showToast(`Found ${matches.length} match${matches.length !== 1 ? 'es' : ''}`, 'success');
         } catch (e) {
             this.showError(e.message);
@@ -162,11 +197,47 @@ const RegexTester = {
         return matches;
     },
     
+    replaceText() {
+        const pattern = this.elements.pattern.value;
+        const flags = this.elements.flags.value;
+        const testString = this.elements.testString.value;
+        const replacement = this.elements.replaceInput.value;
+        
+        if (!pattern || !testString) {
+            this.showToast('Pattern and test string required', 'error');
+            return;
+        }
+        
+        try {
+            const regex = new RegExp(pattern, flags);
+            const result = testString.replace(regex, replacement);
+            
+            this.elements.replaceResult.value = result;
+            this.elements.copyReplaceBtn.style.display = 'inline-flex';
+            
+            // Show stats
+            const replacementsMade = (testString.match(regex) || []).length;
+            this.showToast(`Replaced ${replacementsMade} occurrence${replacementsMade !== 1 ? 's' : ''}`, 'success');
+        } catch (e) {
+            this.showError(e.message);
+        }
+    },
+    
+    copyReplaceResult() {
+        const result = this.elements.replaceResult.value;
+        navigator.clipboard.writeText(result).then(() => {
+            this.showToast('Result copied to clipboard!', 'success');
+        }).catch(() => {
+            this.showToast('Failed to copy', 'error');
+        });
+    },
+    
     displayResults(matches, text) {
         if (matches.length === 0) {
             this.elements.matches.innerHTML = '<div class="no-matches">❌ No matches found</div>';
             this.elements.matchStats.innerHTML = '';
             this.showResults(true);
+            this.elements.replaceSection.style.display = 'block';
             return;
         }
         
@@ -224,6 +295,7 @@ const RegexTester = {
         `;
         
         this.showResults(true);
+        this.elements.replaceSection.style.display = 'block';
     },
     
     generateExplanation(pattern, flags, matches) {
@@ -294,7 +366,7 @@ const RegexTester = {
                     '\\b': 'Word boundary',
                     '\\B': 'Non-word boundary'
                 };
-                explanations.push(`<span class="pattern-part"><code>${escapeHtml(escapeSeq)}</code> - ${escapeExplanations[escapeSeq] || `Escape sequence: ${nextChar}`}</span>`);
+                explanations.push(`<span class="pattern-part"><code>${this.escapeHtml(escapeSeq)}</code> - ${escapeExplanations[escapeSeq] || `Escape sequence: ${nextChar}`}</span>`);
                 i++;
             } else if (char === '.') {
                 explanations.push('<span class="pattern-part"><code>.</code> - Any character except newline</span>');
@@ -327,7 +399,7 @@ const RegexTester = {
             } else if (char === '}') {
                 explanations.push('<span class="pattern-part"><code>}</code> - End of quantifier</span>');
             } else {
-                explanations.push(`<span class="pattern-part"><code>${escapeHtml(char)}</code> - Literal "${escapeHtml(char)}"</span>`);
+                explanations.push(`<span class="pattern-part"><code>${this.escapeHtml(char)}</code> - Literal "${this.escapeHtml(char)}"</span>`);
             }
         }
         
@@ -362,27 +434,39 @@ const RegexTester = {
         });
     },
     
+    showResults(show) {
+        this.elements.resultsSection.style.display = show ? 'block' : 'none';
+    },
+    
+    showError(message) {
+        this.elements.errorDisplay.innerHTML = `<strong>⚠️ Regex Error:</strong> ${this.escapeHtml(message)}`;
+        this.elements.errorDisplay.style.display = 'block';
+    },
+    
+    hideError() {
+        this.elements.errorDisplay.style.display = 'none';
+    },
+    
     clearAll() {
         this.elements.pattern.value = '';
         this.elements.flags.value = 'g';
         this.elements.testString.value = '';
-        this.showResults(false);
-        this.hideError();
+        this.elements.replaceInput.value = '';
+        this.elements.replaceResult.value = '';
+        this.elements.copyReplaceBtn.style.display = 'none';
         this.updateFlagTags();
-        localStorage.removeItem('regex-tester-data');
-        this.showToast('Cleared all fields', 'info');
+        this.showResults(false);
+        this.elements.explanationSection.style.display = 'none';
+        this.elements.replaceSection.style.display = 'none';
+        this.hideError();
+        this.saveData();
     },
     
     copyPattern() {
         const pattern = this.elements.pattern.value;
         const flags = this.elements.flags.value;
-        
-        if (!pattern) {
-            this.showToast('No pattern to copy', 'error');
-            return;
-        }
-        
         const fullPattern = `/${pattern}/${flags}`;
+        
         navigator.clipboard.writeText(fullPattern).then(() => {
             this.showToast('Pattern copied to clipboard!', 'success');
         }).catch(() => {
@@ -390,26 +474,195 @@ const RegexTester = {
         });
     },
     
-    showResults(show) {
-        this.elements.resultsSection.style.display = show ? 'block' : 'none';
-        if (!show) {
-            this.elements.explanationSection.style.display = 'none';
+    sharePattern() {
+        const pattern = this.elements.pattern.value;
+        const flags = this.elements.flags.value;
+        const testString = this.elements.testString.value;
+        
+        if (!pattern) {
+            this.showToast('Enter a pattern first', 'error');
+            return;
+        }
+        
+        // Build shareable URL
+        const params = new URLSearchParams();
+        params.set('pattern', encodeURIComponent(pattern));
+        params.set('flags', flags);
+        if (testString) params.set('text', encodeURIComponent(testString.substring(0, 500))); // Limit text length
+        
+        const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            this.showToast('Shareable URL copied!', 'success');
+        }).catch(() => {
+            // Fallback: show the URL
+            prompt('Copy this URL to share:', shareUrl);
+        });
+    },
+    
+    loadFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const pattern = params.get('pattern');
+        const flags = params.get('flags');
+        const text = params.get('text');
+        
+        if (pattern) {
+            this.elements.pattern.value = decodeURIComponent(pattern);
+        }
+        if (flags) {
+            this.elements.flags.value = flags;
+            this.updateFlagTags();
+        }
+        if (text) {
+            this.elements.testString.value = decodeURIComponent(text);
+        }
+        
+        // Auto-test if URL had pattern
+        if (pattern && text) {
+            setTimeout(() => this.testRegex(), 100);
         }
     },
     
-    showError(message) {
-        this.elements.errorDisplay.innerHTML = `
-            <div class="error-icon">⚠️</div>
-            <div class="error-message">${escapeHtml(message)}</div>
-        `;
-        this.elements.errorDisplay.style.display = 'flex';
+    // Pattern History
+    addToHistory(pattern, flags, description) {
+        if (!pattern) return;
+        
+        // Check if already exists
+        const exists = this.patternHistory.some(h => h.pattern === pattern && h.flags === flags);
+        if (exists) return;
+        
+        const entry = {
+            pattern,
+            flags,
+            description: description || 'Custom Pattern',
+            timestamp: new Date().toISOString()
+        };
+        
+        this.patternHistory.unshift(entry);
+        
+        // Keep only last 20
+        if (this.patternHistory.length > 20) {
+            this.patternHistory = this.patternHistory.slice(0, 20);
+        }
+        
+        this.savePatternHistory();
+        this.renderHistory();
     },
     
-    hideError() {
-        this.elements.errorDisplay.style.display = 'none';
+    loadPatternHistory() {
+        try {
+            const saved = localStorage.getItem('regex-tester-history');
+            if (saved) {
+                this.patternHistory = JSON.parse(saved);
+                this.renderHistory();
+            }
+        } catch (e) {
+            this.patternHistory = [];
+        }
+    },
+    
+    savePatternHistory() {
+        try {
+            localStorage.setItem('regex-tester-history', JSON.stringify(this.patternHistory));
+        } catch (e) {
+            // Ignore storage errors
+        }
+    },
+    
+    renderHistory() {
+        if (!this.elements.historyList) return;
+        
+        if (this.patternHistory.length === 0) {
+            this.elements.historyList.innerHTML = '<p class="history-empty">No history yet. Test some patterns to see them here!</p>';
+            return;
+        }
+        
+        this.elements.historyList.innerHTML = this.patternHistory.map((entry, i) => `
+            <div class="history-item" data-index="${i}">
+                <div class="history-pattern" title="/${entry.pattern}/${entry.flags}">
+                    <code>/${this.truncate(entry.pattern, 25)}/${entry.flags}</code>
+                </div>
+                <div class="history-desc">${this.escapeHtml(entry.description)}</div>
+                <div class="history-actions">
+                    <button class="history-load" data-index="${i}" title="Load pattern">📋</button>
+                    <button class="history-delete" data-index="${i}" title="Delete">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Bind history item events
+        this.elements.historyList.querySelectorAll('.history-load').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const entry = this.patternHistory[index];
+                this.elements.pattern.value = entry.pattern;
+                this.elements.flags.value = entry.flags;
+                this.updateFlagTags();
+                this.showToast('Pattern loaded from history', 'success');
+            });
+        });
+        
+        this.elements.historyList.querySelectorAll('.history-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                this.patternHistory.splice(index, 1);
+                this.savePatternHistory();
+                this.renderHistory();
+            });
+        });
+    },
+    
+    toggleHistory() {
+        const section = this.elements.historySection;
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            this.renderHistory();
+        } else {
+            section.style.display = 'none';
+        }
+    },
+    
+    clearHistory() {
+        this.patternHistory = [];
+        this.savePatternHistory();
+        this.renderHistory();
+    },
+    
+    truncate(str, max) {
+        return str.length > max ? str.substring(0, max) + '...' : str;
+    },
+    
+    saveData() {
+        try {
+            const data = {
+                pattern: this.elements.pattern.value,
+                flags: this.elements.flags.value,
+                testString: this.elements.testString.value,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('regex-tester-data', JSON.stringify(data));
+        } catch (e) {
+            // Ignore storage errors
+        }
+    },
+    
+    loadSavedData() {
+        try {
+            const saved = localStorage.getItem('regex-tester-data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.pattern) this.elements.pattern.value = data.pattern;
+                if (data.flags) this.elements.flags.value = data.flags;
+                if (data.testString) this.elements.testString.value = data.testString;
+                this.updateFlagTags();
+            }
+        } catch (e) {
+            // Ignore storage errors
+        }
     },
     
     showToast(message, type = 'info') {
+        // Remove existing toast
         const existing = document.querySelector('.toast');
         if (existing) existing.remove();
         
@@ -418,9 +671,10 @@ const RegexTester = {
         toast.textContent = message;
         document.body.appendChild(toast);
         
-        setTimeout(() => {
+        // Trigger animation
+        requestAnimationFrame(() => {
             toast.classList.add('show');
-        }, 10);
+        });
         
         setTimeout(() => {
             toast.classList.remove('show');
@@ -428,58 +682,22 @@ const RegexTester = {
         }, 3000);
     },
     
-    saveData() {
-        const data = {
-            pattern: this.elements.pattern.value,
-            flags: this.elements.flags.value,
-            testString: this.elements.testString.value,
-            timestamp: Date.now()
-        };
-        localStorage.setItem('regex-tester-data', JSON.stringify(data));
-    },
-    
-    loadSavedData() {
-        const saved = localStorage.getItem('regex-tester-data');
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                this.elements.pattern.value = data.pattern || '';
-                this.elements.flags.value = data.flags || 'g';
-                this.elements.testString.value = data.testString || '';
-                this.updateFlagTags();
-                if (data.pattern && data.testString) {
-                    this.testRegex();
-                }
-            } catch (e) {
-                console.error('Failed to load saved data:', e);
-            }
-        }
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
     
     registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(console.error);
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('[SW] Registered'))
+                .catch(err => console.log('[SW] Registration failed:', err));
         }
-    },
-    
-    escapeHtml: escapeHtml
+    }
 };
 
-// Utility function
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Old function signatures for backward compatibility
-function process() {
-    RegexTester.testRegex();
-}
-
-function copy() {
-    RegexTester.copyPattern();
-}
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => RegexTester.init());
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    RegexTester.init();
+});
